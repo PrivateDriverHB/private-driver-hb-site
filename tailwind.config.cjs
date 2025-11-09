@@ -1,0 +1,2 @@
+/** @type {import('tailwindcss').Config} */
+module.exports={ content:['./index.html','./src/**/*.{js,jsx,ts,tsx}'], theme:{ extend:{ colors:{ pdhb:{ gold:'#c9a227', dark:'#0b0b0b' } } } }, plugins:[] }

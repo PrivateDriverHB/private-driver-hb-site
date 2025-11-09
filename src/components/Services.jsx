@@ -1,0 +1,3 @@
+import React from 'react'
+const items=[{title:'Transferts aéroport',desc:'Suivi de vol, accueil avec pancarte, 60 min d’attente incluses.'},{title:'Mise à disposition',desc:'À l’heure, à la demi-journée ou à la journée avec chauffeur dédié.'},{title:'Longue distance',desc:'Ain ⇄ Lyon ⇄ Genève et trajets sur mesure en France/Suisse.'}]
+export default function Services(){return(<div className='grid md:grid-cols-3 gap-6'>{items.map(i=>(<div key={i.title} className='card'><h3 className='font-semibold text-xl mb-2 text-pdhb-gold'>{i.title}</h3><p className='text-white/80'>{i.desc}</p></div>))}</div>)}
