@@ -1,8 +1,29 @@
-import React from 'react'
-import Header from './components/Header'
-import Hero from './components/Hero'
-import Services from './components/Services'
-import BookingForm from './components/BookingForm'
-import Testimonials from './components/Testimonials'
-import Footer from './components/Footer'
-export default function App(){return(<div className='min-h-screen flex flex-col bg-pdhb-dark text-white'><Header/><main className='flex-grow'><Hero/><section id='services' className='container py-16'><Services/></section><section id='booking' className='py-16 bg-black/30'><div className='container'><h2 className='text-3xl font-bold mb-6'>Réserver & payer en ligne</h2><BookingForm/></div></section><section className='container py-16'><Testimonials/></section></main><Footer/></div>) }
+import React from "react";
+
+function App() {
+  return (
+    <div
+      className="min-h-screen bg-cover bg-center text-white flex flex-col items-center justify-center font-sans"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1605559424843-1f13f83baf19?auto=format&fit=crop&w=1920&q=80')",
+      }}
+    >
+      <div className="bg-black bg-opacity-60 p-10 rounded-2xl text-center backdrop-blur-sm">
+        <h1 className="text-5xl font-semibold tracking-wide mb-4">
+          Private Driver <span className="text-gray-400">HB</span>
+        </h1>
+        <p className="text-gray-300 text-lg max-w-xl leading-relaxed">
+          Confort, discrétion et élégance à bord d’une Audi A4 — votre chauffeur
+          privé haut de gamme pour tous vos déplacements.
+        </p>
+        <button className="mt-8 px-6 py-3 bg-white text-black rounded-full hover:bg-gray-300 transition duration-300">
+          Réserver maintenant
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+

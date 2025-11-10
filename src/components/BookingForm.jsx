@@ -1,209 +1,130 @@
-import React, { useEffect, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useState } from "react";
 
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
-
-// ✅ arrondi au 0,50 € le plus proche
-function roundToHalfEUR(valueEUR) {
-  return Math.round(valueEUR * 2) / 2;
-}
-
-export default function BookingForm() {
-  const [loading, setLoading] = useState(false);
+function BookingForm() {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    pickup: "",
-    dropoff: "",
+    from: "",
+    to: "",
     date: "",
     time: "",
-    passengers: 1,
-    hours: 1,
-    service: "course",   // course | misedispo
-    distanceKm: 0,
-    priceCents: 4500,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleChange(e) {
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  }
+  };
 
-  async function compute() {
-    try {
-      if (form.service === "misedispo") {
-        // ✅ Mise à dispo : 50 €/h
-        const perHour = 50;
-        let total = perHour * Number(form.hours || 1);
-
-        total = roundToHalfEUR(total);
-        setForm((f) => ({ ...f, priceCents: Math.round(total * 100) }));
-        return;
-      }
-
-      // ✅ course : calcul distance GOOGLE
-      if (!form.pickup || !form.dropoff) return;
-
-      const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      const url =
-        "https://maps.googleapis.com/maps/api/distancematrix/json" +
-        `?origins=${encodeURIComponent(form.pickup)}` +
-        `&destinations=${encodeURIComponent(form.dropoff)}` +
-        `&key=${GMAPS_KEY}`;
-
-      const r = await fetch(url);
-      const j = await r.json();
-
-      const distMeters = j?.rows?.[0]?.elements?.[0]?.distance?.value ?? 0;
-      const distKm = distMeters / 1000;
-
-      const basePickup = 15;
-      const perKmEUR = 2;
-
-      let totalEUR = basePickup + perKmEUR * distKm;
-      totalEUR = roundToHalfEUR(totalEUR);
-
-      setForm((f) => ({
-        ...f,
-        distanceKm: distKm,
-        priceCents: Math.round(totalEUR * 100),
-      }));
-    } catch (e) {
-      console.error("[Distance error]", e);
-    }
-  }
-
-  useEffect(() => {
-    compute();
-  }, [form.service, form.pickup, form.dropoff, form.hours]);
-
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
-      const payload = {
-        booking: {
-          ...form,
-          priceCents: form.priceCents ?? Math.round((form.price || 45) * 100),
-        },
-      };
+      const booking = { ...form, priceCents: 4500 }; // exemple 45€
 
-      const res = await fetch("/api/create-checkout-session", {
+      const res = await fetch("http://localhost:5174/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ booking }),
       });
 
       const data = await res.json();
 
       if (data.sessionId) {
-        const stripe = await stripePromise;
-        await stripe.redirectToCheckout({ sessionId: data.sessionId });
+        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
       } else {
-        alert("Erreur : le paiement ne s'est pas initialisé");
+        throw new Error("Erreur de session Stripe");
       }
     } catch (err) {
       console.error(err);
-      alert("Erreur réseau");
-    } finally {
-      setLoading(false);
+      setError("Erreur réseau ou serveur Stripe.");
     }
-  }
+
+    setLoading(false);
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl card">
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        background: "#111",
+        color: "white",
+        padding: "2rem",
+        borderRadius: "12px",
+        maxWidth: "500px",
+        margin: "auto",
+      }}
+    >
+      <h2>Réserver & payer en ligne</h2>
 
-      {/* Type de service */}
-      <select
-        name="service"
+      <input
+        type="text"
+        name="name"
+        placeholder="Nom complet"
+        value={form.name}
         onChange={handleChange}
-        className="border border-white/10 bg-black/40 text-white rounded p-3 mb-4 w-full"
+        required
+      />
+      <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        value={form.email}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="from"
+        placeholder="Adresse de départ"
+        value={form.from}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="to"
+        placeholder="Adresse d'arrivée"
+        value={form.to}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="date"
+        name="date"
+        value={form.date}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="time"
+        name="time"
+        value={form.time}
+        onChange={handleChange}
+        required
+      />
+
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          marginTop: "1rem",
+          background: "#fcbf49",
+          border: "none",
+          padding: "0.8rem 1.2rem",
+          borderRadius: "8px",
+          cursor: "pointer",
+        }}
       >
-        <option value="course">Course (2€ / km + 15€)</option>
-        <option value="misedispo">Mise à dispo (50€/h)</option>
-      </select>
+        {loading ? "Redirection..." : "Réserver"}
+      </button>
 
-      {form.service === "misedispo" ? (
-        <input
-          type="number"
-          name="hours"
-          placeholder="Heures"
-          min="1"
-          onChange={handleChange}
-          className="border border-white/10 bg-black/40 text-white rounded p-3 mb-4 w-full"
-        />
-      ) : null}
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <input
-          name="name"
-          onChange={handleChange}
-          required
-          placeholder="Nom"
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-        <input
-          name="email"
-          type="email"
-          onChange={handleChange}
-          required
-          placeholder="Adresse e-mail"
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-        <input
-          name="pickup"
-          onChange={handleChange}
-          required
-          placeholder="Départ"
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-        <input
-          name="dropoff"
-          onChange={handleChange}
-          required
-          placeholder="Destination"
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-        <input
-          name="date"
-          type="date"
-          onChange={handleChange}
-          required
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-        <input
-          name="time"
-          type="time"
-          onChange={handleChange}
-          required
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-        <input
-          name="passengers"
-          type="number"
-          min="1"
-          defaultValue="1"
-          onChange={handleChange}
-          className="border border-white/10 bg-black/40 text-white rounded p-3"
-        />
-      </div>
-
-      <div className="flex items-center justify-between mt-4">
-        <div>
-          Montant estimé :{" "}
-          <strong className="text-pdhb-gold">
-            {(form.priceCents / 100).toFixed(2)} €
-          </strong>
-        </div>
-        <button type="submit" disabled={loading} className="btn">
-          {loading ? "Redirection…" : "Payer & Réserver"}
-        </button>
-      </div>
-
-      <p className="text-xs text-white/50 mt-3">
-        Zones desservies : Ain, Lyon, Genève
-      </p>
+      {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
     </form>
   );
 }
+
+export default BookingForm;
+

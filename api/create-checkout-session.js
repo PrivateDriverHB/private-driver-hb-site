@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       phone,
     } = req.body;
 
-    // ✅ Création session Stripe
+    // ✅ Création de la session de paiement Stripe
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -29,20 +29,20 @@ export default async function handler(req, res) {
           price_data: {
             currency: "eur",
             product_data: {
-              name: `Course VTC — Private Driver HB`,
+              name: "Course VTC — Private Driver HB",
               description: `${pickup} → ${dropoff}`,
             },
-            unit_amount: Math.round(price * 100),
+            unit_amount: Math.round(price * 100), // conversion euros → centimes
           },
           quantity: 1,
         },
       ],
-      success_url: `${process.env.VITE_SERVER_URL}/success`,
-      cancel_url: `${process.env.VITE_SERVER_URL}/cancel`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancel`,
     });
 
-    // ✅ Envoi email
-    await fetch(`${process.env.VITE_SERVER_URL}/api/send-email`, {
+    // ✅ Envoi d’un email de confirmation (appel à ton API interne)
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -57,9 +57,10 @@ export default async function handler(req, res) {
       }),
     });
 
+    // ✅ Réponse : URL Stripe pour la redirection
     return res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error(err);
+    console.error("Erreur Stripe:", err);
     return res.status(500).json({ error: err.message });
   }
 }
